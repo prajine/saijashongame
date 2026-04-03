@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>2D Platformer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+      touch-action: none;
+    }
+    #gameContainer {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      aspect-ratio: 4/3;
+    }
+    #gameCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: linear-gradient(to bottom, #16213e 0%, #1a1a2e 100%);
+      border-radius: 8px;
+    }
+    #controls {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 20px;
+      pointer-events: none;
+    }
+    .control-group {
+      display: flex;
+      gap: 10px;
+      pointer-events: auto;
+    }
+    .btn {
+      width: 60px;
+      height: 60px;
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      color: white;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: background 0.1s;
+    }
+    .btn:active, .btn.active {
+      background: rgba(255,255,255,0.4);
+    }
+    #jumpBtn {
+      width: 80px;
+      height: 80px;
+      position: fixed;
+      right: 20px;
+      bottom: 100px;
+    }
+    #hud {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 18px;
+    }
+    #hud div { margin-bottom: 5px; }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <div>Score: <span id="score">0</span></div>
+    <div>Health: <span id="health">100</span></div>
+  </div>
+  
+  <div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+  
+  <div id="controls">
+    <div class="control-group">
+      <button class="btn" id="leftBtn">◀</button>
+      <button class="btn" id="rightBtn">▶</button>
+    </div>
+  </div>
+  <button class="btn" id="jumpBtn">▲</button>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const CANVAS_WIDTH = 800;
+    const CANVAS_HEIGHT = 600;
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+
+    const GRAVITY = 0.6;
+    const GROUND_Y = CANVAS_HEIGHT - 60;
+
+    const player = {
+      x: 100,
+      y: GROUND_Y - 64,
+      width: 64,
+      height: 64,
+      velX: 0,
+      velY: 0,
+      speed: 5,
+      jumpForce: -14,
+      grounded: false,
+      health: 100,
+      invincible: false,
+      invincibleTimer: 0,
+      image: new Image()
+    };
+
+    player.image.src = 'p.jpeg';
+    player.image.onerror = () => {
+      ctx.fillStyle = '#e74c3c';
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+    };
+
+    const enemyImages = {
+      j: new Image(),
+      s: new Image()
+    };
+    enemyImages.j.src = 'j.jpg';
+    enemyImages.s.src = 's.jpeg';
+
+    const platforms = [
+      { x: 0, y: GROUND_Y, width: CANVAS_WIDTH, height: 60, color: '#27ae60' },
+      { x: 150, y: 450, width: 150, height: 20, color: '#3498db' },
+      { x: 400, y: 380, width: 150, height: 20, color: '#3498db' },
+      { x: 600, y: 300, width: 150, height: 20, color: '#3498db' },
+      { x: 50, y: 300, width: 120, height: 20, color: '#3498db' },
+      { x: 250, y: 220, width: 120, height: 20, color: '#9b59b6' },
+      { x: 500, y: 150, width: 200, height: 20, color: '#e67e22' }
+    ];
+
+    const enemies = [];
+    const enemyBullets = [];
+    let score = 0;
+    let gameOver = false;
+    let lastEnemySpawn = 0;
+
+    const keys = { left: false, right: false, jump: false };
+
+    document.getElementById('leftBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; }, { passive: false });
+    document.getElementById('leftBtn').addEventListener('touchend', () => { keys.left = false; });
+    document.getElementById('rightBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; }, { passive: false });
+    document.getElementById('rightBtn').addEventListener('touchend', () => { keys.right = false; });
+    document.getElementById('jumpBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.jump = true; }, { passive: false });
+    document.getElementById('jumpBtn').addEventListener('touchend', () => { keys.jump = false; });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+      if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.jump = true;
+    });
+    document.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+      if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.jump = false;
+    });
+
+    function spawnEnemy() {
+      const types = ['j', 's'];
+      const type = types[Math.floor(Math.random() * types.length)];
+      const enemy = {
+        x: CANVAS_WIDTH + Math.random() * 200,
+        y: GROUND_Y - 60,
+        width: type === 's' ? 80 : 50,
+        height: type === 's' ? 80 : 50,
+        speed: 1.5 + Math.random(),
+        type: type,
+        lastShot: 0,
+        shootInterval: 1500 + Math.random() * 1000
+      };
+      enemies.push(enemy);
+    }
+
+    function update() {
+      if (gameOver) return;
+
+      if (keys.left) player.velX = -player.speed;
+      else if (keys.right) player.velX = player.speed;
+      else player.velX = 0;
+
+      if (keys.jump && player.grounded) {
+        player.velY = player.jumpForce;
+        player.grounded = false;
+      }
+
+      player.velY += GRAVITY;
+      player.x += player.velX;
+      player.y += player.velY;
+
+      player.grounded = false;
+      for (const plat of platforms) {
+        if (player.x < plat.x + plat.width &&
+            player.x + player.width > plat.x &&
+            player.y + player.height > plat.y &&
+            player.y + player.height < plat.y + plat.height + player.velY) {
+          player.y = plat.y - player.height;
+          player.velY = 0;
+          player.grounded = true;
+        }
+      }
+
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > CANVAS_WIDTH) player.x = CANVAS_WIDTH - player.width;
+      if (player.y > CANVAS_HEIGHT) {
+        player.health = 0;
+        gameOver = true;
+      }
+
+      if (player.invincible) {
+        player.invincibleTimer--;
+        if (player.invincibleTimer <= 0) player.invincible = false;
+      }
+
+      const now = Date.now();
+      if (now - lastEnemySpawn > 3000) {
+        spawnEnemy();
+        lastEnemySpawn = now;
+      }
+
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const enemy = enemies[i];
+        enemy.x -= enemy.speed;
+
+        if (enemy.x + enemy.width < 0) {
+          enemies.splice(i, 1);
+          score += 10;
+          continue;
+        }
+
+        if (now - enemy.lastShot > enemy.shootInterval) {
+          enemyBullets.push({
+            x: enemy.x,
+            y: enemy.y + enemy.height / 2 - 5,
+            width: 10,
+            height: 10,
+            speed: 6,
+            direction: -1
+          });
+          enemy.lastShot = now;
+        }
+
+        if (rectCollision(player, enemy) && !player.invincible) {
+          player.health -= 20;
+          player.invincible = true;
+          player.invincibleTimer = 60;
+          if (player.health <= 0) gameOver = true;
+        }
+      }
+
+      for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const bullet = enemyBullets[i];
+        bullet.x += bullet.speed * bullet.direction;
+
+        if (bullet.x < -20 || bullet.x > CANVAS_WIDTH + 20) {
+          enemyBullets.splice(i, 1);
+          continue;
+        }
+
+        if (rectCollision(player, bullet) && !player.invincible) {
+          player.health -= 10;
+          player.invincible = true;
+          player.invincibleTimer = 60;
+          enemyBullets.splice(i, 1);
+          if (player.health <= 0) gameOver = true;
+        }
+      }
+
+      document.getElementById('score').textContent = score;
+      document.getElementById('health').textContent = Math.max(0, player.health);
+    }
+
+    function rectCollision(a, b) {
+      return a.x < b.x + b.width &&
+             a.x + a.width > b.x &&
+             a.y < b.y + b.height &&
+             a.y + a.height > b.y;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      for (const plat of platforms) {
+        ctx.fillStyle = plat.color;
+        ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.strokeRect(plat.x, plat.y, plat.width, plat.height);
+      }
+
+      for (const enemy of enemies) {
+        const img = enemyImages[enemy.type];
+        if (img.complete) {
+          ctx.drawImage(img, enemy.x, enemy.y, enemy.width, enemy.height);
+        } else {
+          ctx.fillStyle = '#e74c3c';
+          ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+        }
+      }
+
+      for (const bullet of enemyBullets) {
+        ctx.fillStyle = '#f39c12';
+        ctx.beginPath();
+        ctx.arc(bullet.x + bullet.width/2, bullet.y + bullet.height/2, bullet.width/2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (player.image.complete && player.image.naturalWidth > 0) {
+        ctx.globalAlpha = player.invincible ? 0.5 + Math.sin(Date.now() * 0.02) * 0.3 : 1;
+        ctx.drawImage(player.image, player.x, player.y, player.width, player.height);
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.fillStyle = '#3498db';
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+      }
+
+      if (gameOver) {
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        ctx.fillStyle = '#e74c3c';
+        ctx.font = 'bold 48px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('GAME OVER', CANVAS_WIDTH/2, CANVAS_HEIGHT/2 - 30);
+        ctx.fillStyle = '#fff';
+        ctx.font = '24px Arial';
+        ctx.fillText('Score: ' + score, CANVAS_WIDTH/2, CANVAS_HEIGHT/2 + 20);
+        ctx.fillText('Refresh to play again', CANVAS_WIDTH/2, CANVAS_HEIGHT/2 + 60);
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
+</body>
+</html>
