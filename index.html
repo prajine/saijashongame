@@ -1,357 +1,867 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>2D Platformer</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: #1a1a2e;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      overflow: hidden;
-      touch-action: none;
-    }
-    #gameContainer {
-      position: relative;
-      width: 100%;
-      max-width: 800px;
-      aspect-ratio: 4/3;
-    }
-    #gameCanvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-      background: linear-gradient(to bottom, #16213e 0%, #1a1a2e 100%);
-      border-radius: 8px;
-    }
-    #controls {
-      position: fixed;
-      bottom: 20px;
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: space-between;
-      padding: 0 20px;
-      pointer-events: none;
-    }
-    .control-group {
-      display: flex;
-      gap: 10px;
-      pointer-events: auto;
-    }
-    .btn {
-      width: 60px;
-      height: 60px;
-      background: rgba(255,255,255,0.15);
-      border: 2px solid rgba(255,255,255,0.3);
-      border-radius: 50%;
-      color: white;
-      font-size: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
-      -webkit-user-select: none;
-      transition: background 0.1s;
-    }
-    .btn:active, .btn.active {
-      background: rgba(255,255,255,0.4);
-    }
-    #jumpBtn {
-      width: 80px;
-      height: 80px;
-      position: fixed;
-      right: 20px;
-      bottom: 100px;
-    }
-    #hud {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      color: white;
-      font-family: Arial, sans-serif;
-      font-size: 18px;
-    }
-    #hud div { margin-bottom: 5px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Mario Style Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(180deg, #5c94fc 0%, #5c94fc 60%, #8b4513 60%, #8b4513 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 16/9;
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 4px solid #2d5a27;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+
+        .hud-item {
+            background: rgba(0,0,0,0.5);
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: none;
+            justify-content: space-between;
+            padding: 0 20px;
+            pointer-events: none;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .ctrl-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.8);
+            background: rgba(255,255,255,0.3);
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.1s, background 0.1s;
+        }
+
+        .ctrl-btn:active {
+            transform: scale(0.9);
+            background: rgba(255,255,255,0.5);
+        }
+
+        .ctrl-btn.jump {
+            width: 80px;
+            height: 80px;
+            font-size: 14px;
+        }
+
+        .ctrl-btn.fire {
+            background: rgba(255,100,0,0.5);
+            border-color: #ff6600;
+        }
+
+        #startScreen, #gameOverScreen, #victoryScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 10;
+            border-radius: 8px;
+        }
+
+        .screen-title {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+        }
+
+        .screen-subtitle {
+            font-size: 20px;
+            margin-bottom: 30px;
+            opacity: 0.8;
+        }
+
+        .play-btn {
+            padding: 15px 50px;
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(180deg, #4CAF50, #2E7D32);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .play-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
+        .instructions {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .hidden { display: none !important; }
+
+        #enemyAnnounce {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffcc00;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        @media (max-width: 768px) {
+            #hud { font-size: 14px; }
+            .screen-title { font-size: 32px; }
+            .ctrl-btn { width: 50px; height: 50px; font-size: 20px; }
+            .ctrl-btn.jump { width: 70px; height: 70px; font-size: 12px; }
+        }
+
+        @media (pointer: coarse) {
+            #controls { display: flex; }
+        }
+    </style>
 </head>
 <body>
-  <div id="hud">
-    <div>Score: <span id="score">0</span></div>
-    <div>Health: <span id="health">100</span></div>
-  </div>
-  
-  <div id="gameContainer">
-    <canvas id="gameCanvas"></canvas>
-  </div>
-  
-  <div id="controls">
-    <div class="control-group">
-      <button class="btn" id="leftBtn">◀</button>
-      <button class="btn" id="rightBtn">▶</button>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="hud">
+            <div class="hud-item" id="scoreDisplay">Score: 0</div>
+            <div class="hud-item" id="livesDisplay">❤️❤️❤️</div>
+            <div class="hud-item" id="levelDisplay">Level 1</div>
+        </div>
+        <div id="enemyAnnounce"></div>
+        
+        <div id="startScreen">
+            <div class="screen-title">🎮 MARIO QUEST</div>
+            <div class="screen-subtitle">Defeat All Enemies!</div>
+            <button class="play-btn" onclick="startGame()">PLAY</button>
+            <div class="instructions">
+                <strong>PC:</strong> Arrow Keys / WASD to Move | Space to Jump | X/F to Fire<br>
+                <strong>Mobile:</strong> Use on-screen buttons
+            </div>
+        </div>
+
+        <div id="gameOverScreen" class="hidden">
+            <div class="screen-title">💀 GAME OVER</div>
+            <div class="screen-subtitle" id="finalScore">Score: 0</div>
+            <button class="play-btn" onclick="restartGame()">TRY AGAIN</button>
+        </div>
+
+        <div id="victoryScreen" class="hidden">
+            <div class="screen-title">🏆 VICTORY!</div>
+            <div class="screen-subtitle" id="victoryScore">Final Score: 0</div>
+            <button class="play-btn" onclick="restartGame()">PLAY AGAIN</button>
+        </div>
     </div>
-  </div>
-  <button class="btn" id="jumpBtn">▲</button>
 
-  <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    
-    const CANVAS_WIDTH = 800;
-    const CANVAS_HEIGHT = 600;
-    canvas.width = CANVAS_WIDTH;
-    canvas.height = CANVAS_HEIGHT;
+    <div id="controls">
+        <div class="control-group">
+            <button class="ctrl-btn" id="btnLeft">◀</button>
+            <button class="ctrl-btn" id="btnRight">▶</button>
+        </div>
+        <div class="control-group">
+            <button class="ctrl-btn fire" id="btnFire">🔥</button>
+            <button class="ctrl-btn jump" id="btnJump">JUMP</button>
+        </div>
+    </div>
 
-    const GRAVITY = 0.6;
-    const GROUND_Y = CANVAS_HEIGHT - 60;
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const CANVAS_WIDTH = 800;
+        const CANVAS_HEIGHT = 450;
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = CANVAS_HEIGHT;
 
-    const player = {
-      x: 100,
-      y: GROUND_Y - 64,
-      width: 64,
-      height: 64,
-      velX: 0,
-      velY: 0,
-      speed: 5,
-      jumpForce: -14,
-      grounded: false,
-      health: 100,
-      invincible: false,
-      invincibleTimer: 0,
-      image: new Image()
-    };
+        const GRAVITY = 0.6;
+        const FRICTION = 0.85;
+        const GROUND_Y = CANVAS_HEIGHT - 60;
 
-    player.image.src = 'p.jpeg';
-    player.image.onerror = () => {
-      ctx.fillStyle = '#e74c3c';
-      ctx.fillRect(player.x, player.y, player.width, player.height);
-    };
+        const sprites = {
+            mario: new Image(),
+            enemy1: new Image(),
+            enemy2: new Image(),
+            enemy3: new Image(),
+            coin: new Image(),
+            fireball: new Image()
+        };
 
-    const enemyImages = {
-      j: new Image(),
-      s: new Image()
-    };
-    enemyImages.j.src = 'j.jpg';
-    enemyImages.s.src = 's.jpeg';
+        const spritePaths = {
+            mario: 'p.jpeg',
+            enemy1: 's.jpeg',
+            enemy2: 'j.jpg',
+            enemy3: 'h.jpg'
+        };
 
-    const platforms = [
-      { x: 0, y: GROUND_Y, width: CANVAS_WIDTH, height: 60, color: '#27ae60' },
-      { x: 150, y: 450, width: 150, height: 20, color: '#3498db' },
-      { x: 400, y: 380, width: 150, height: 20, color: '#3498db' },
-      { x: 600, y: 300, width: 150, height: 20, color: '#3498db' },
-      { x: 50, y: 300, width: 120, height: 20, color: '#3498db' },
-      { x: 250, y: 220, width: 120, height: 20, color: '#9b59b6' },
-      { x: 500, y: 150, width: 200, height: 20, color: '#e67e22' }
-    ];
+        let spritesLoaded = 0;
+        let totalSprites = 4;
 
-    const enemies = [];
-    const enemyBullets = [];
-    let score = 0;
-    let gameOver = false;
-    let lastEnemySpawn = 0;
+        Object.keys(spritePaths).forEach(key => {
+            sprites[key].onload = () => {
+                spritesLoaded++;
+                if (spritesLoaded === totalSprites) {
+                    console.log('All sprites loaded!');
+                }
+            };
+            sprites[key].src = spritePaths[key];
+        });
 
-    const keys = { left: false, right: false, jump: false };
+        const drawCoinFrame = (x, y, size, frame) => {
+            ctx.save();
+            ctx.translate(x + size/2, y + size/2);
+            ctx.rotate(frame * 0.2);
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, size/2 * 0.8, size/2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#FFA500';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, size/2 * 0.5, size/2 * 0.6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        };
 
-    document.getElementById('leftBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; }, { passive: false });
-    document.getElementById('leftBtn').addEventListener('touchend', () => { keys.left = false; });
-    document.getElementById('rightBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; }, { passive: false });
-    document.getElementById('rightBtn').addEventListener('touchend', () => { keys.right = false; });
-    document.getElementById('jumpBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.jump = true; }, { passive: false });
-    document.getElementById('jumpBtn').addEventListener('touchend', () => { keys.jump = false; });
+        const drawFireballFrame = (x, y, size) => {
+            const gradient = ctx.createRadialGradient(x + size/2, y + size/2, 0, x + size/2, y + size/2, size/2);
+            gradient.addColorStop(0, '#FFFFFF');
+            gradient.addColorStop(0.3, '#FFFF00');
+            gradient.addColorStop(0.7, '#FF6600');
+            gradient.addColorStop(1, '#FF0000');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI * 2);
+            ctx.fill();
+        };
 
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
-      if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
-      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.jump = true;
-    });
-    document.addEventListener('keyup', (e) => {
-      if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
-      if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
-      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.jump = false;
-    });
+        let gameState = 'start';
+        let score = 0;
+        let lives = 3;
+        let currentEnemy = 0;
+        let frameCount = 0;
+        let animationFrame = 0;
 
-    function spawnEnemy() {
-      const types = ['j', 's'];
-      const type = types[Math.floor(Math.random() * types.length)];
-      const enemy = {
-        x: CANVAS_WIDTH + Math.random() * 200,
-        y: GROUND_Y - 60,
-        width: type === 's' ? 80 : 50,
-        height: type === 's' ? 80 : 50,
-        speed: 1.5 + Math.random(),
-        type: type,
-        lastShot: 0,
-        shootInterval: 1500 + Math.random() * 1000
-      };
-      enemies.push(enemy);
-    }
+        const keys = {
+            left: false,
+            right: false,
+            jump: false,
+            fire: false
+        };
 
-    function update() {
-      if (gameOver) return;
+        const player = {
+            x: 50,
+            y: GROUND_Y - 48,
+            width: 48,
+            height: 48,
+            vx: 0,
+            vy: 0,
+            speed: 5,
+            jumpPower: -14,
+            onGround: false,
+            direction: 1,
+            canShoot: true,
+            invincible: false,
+            invincibleTimer: 0
+        };
 
-      if (keys.left) player.velX = -player.speed;
-      else if (keys.right) player.velX = player.speed;
-      else player.velX = 0;
+        const platforms = [
+            { x: 150, y: GROUND_Y - 120, width: 120, height: 20 },
+            { x: 350, y: GROUND_Y - 180, width: 100, height: 20 },
+            { x: 550, y: GROUND_Y - 120, width: 100, height: 20 },
+            { x: 100, y: GROUND_Y - 250, width: 80, height: 20 },
+            { x: 300, y: GROUND_Y - 300, width: 100, height: 20 },
+            { x: 500, y: GROUND_Y - 250, width: 80, height: 20 },
+            { x: 650, y: GROUND_Y - 180, width: 120, height: 20 }
+        ];
 
-      if (keys.jump && player.grounded) {
-        player.velY = player.jumpForce;
-        player.grounded = false;
-      }
+        const enemyConfigs = [
+            { 
+                name: 'Walker',
+                sprite: 'enemy1',
+                hp: 1, 
+                speed: 1.5, 
+                x: 200, 
+                y: GROUND_Y - 48,
+                width: 48, 
+                height: 48,
+                power: 'Slow patrol',
+                points: 100,
+                shootInterval: null,
+                hasShield: false
+            },
+            { 
+                name: 'Shooter',
+                sprite: 'enemy2',
+                hp: 2, 
+                speed: 0.8, 
+                x: 400, 
+                y: GROUND_Y - 48,
+                width: 48, 
+                height: 48,
+                power: 'Shoots projectiles',
+                points: 200,
+                shootInterval: 120,
+                hasShield: false
+            },
+            { 
+                name: 'Shield Boss',
+                sprite: 'enemy3',
+                hp: 3, 
+                speed: 3, 
+                x: 600, 
+                y: GROUND_Y - 48,
+                width: 48, 
+                height: 48,
+                power: 'Fast + Shield',
+                points: 500,
+                shootInterval: 90,
+                hasShield: true
+            }
+        ];
 
-      player.velY += GRAVITY;
-      player.x += player.velX;
-      player.y += player.velY;
+        let enemies = [];
+        let coins = [];
+        let fireballs = [];
+        let enemyProjectiles = [];
 
-      player.grounded = false;
-      for (const plat of platforms) {
-        if (player.x < plat.x + plat.width &&
-            player.x + player.width > plat.x &&
-            player.y + player.height > plat.y &&
-            player.y + player.height < plat.y + plat.height + player.velY) {
-          player.y = plat.y - player.height;
-          player.velY = 0;
-          player.grounded = true;
+        function spawnCoins() {
+            coins = [];
+            const coinPositions = [
+                { x: 180, y: GROUND_Y - 160 },
+                { x: 200, y: GROUND_Y - 160 },
+                { x: 370, y: GROUND_Y - 220 },
+                { x: 390, y: GROUND_Y - 220 },
+                { x: 570, y: GROUND_Y - 160 },
+                { x: 590, y: GROUND_Y - 160 },
+                { x: 120, y: GROUND_Y - 290 },
+                { x: 140, y: GROUND_Y - 290 },
+                { x: 330, y: GROUND_Y - 340 },
+                { x: 350, y: GROUND_Y - 340 },
+                { x: 520, y: GROUND_Y - 290 },
+                { x: 540, y: GROUND_Y - 290 },
+                { x: 680, y: GROUND_Y - 220 },
+                { x: 700, y: GROUND_Y - 220 }
+            ];
+            
+            coinPositions.forEach(pos => {
+                coins.push({
+                    x: pos.x,
+                    y: pos.y,
+                    size: 28,
+                    collected: false,
+                    frame: Math.random() * Math.PI * 2
+                });
+            });
         }
-      }
 
-      if (player.x < 0) player.x = 0;
-      if (player.x + player.width > CANVAS_WIDTH) player.x = CANVAS_WIDTH - player.width;
-      if (player.y > CANVAS_HEIGHT) {
-        player.health = 0;
-        gameOver = true;
-      }
-
-      if (player.invincible) {
-        player.invincibleTimer--;
-        if (player.invincibleTimer <= 0) player.invincible = false;
-      }
-
-      const now = Date.now();
-      if (now - lastEnemySpawn > 3000) {
-        spawnEnemy();
-        lastEnemySpawn = now;
-      }
-
-      for (let i = enemies.length - 1; i >= 0; i--) {
-        const enemy = enemies[i];
-        enemy.x -= enemy.speed;
-
-        if (enemy.x + enemy.width < 0) {
-          enemies.splice(i, 1);
-          score += 10;
-          continue;
+        function spawnEnemy(index) {
+            const config = enemyConfigs[index];
+            const enemy = {
+                ...config,
+                active: true,
+                direction: -1,
+                shootTimer: config.shootInterval || 0,
+                flashTimer: 0
+            };
+            
+            if (index === 0) {
+                enemy.y = GROUND_Y - 48;
+                enemy.platform = null;
+            } else if (index === 1) {
+                enemy.y = platforms[1].y - enemy.height;
+                enemy.x = platforms[1].x + platforms[1].width / 2;
+                enemy.platform = platforms[1];
+            } else if (index === 2) {
+                enemy.y = platforms[5].y - enemy.height;
+                enemy.x = platforms[5].x + platforms[5].width / 2;
+                enemy.platform = platforms[5];
+            }
+            
+            enemies = [enemy];
+            
+            announceEnemy(config.name, config.power);
         }
 
-        if (now - enemy.lastShot > enemy.shootInterval) {
-          enemyBullets.push({
-            x: enemy.x,
-            y: enemy.y + enemy.height / 2 - 5,
-            width: 10,
-            height: 10,
-            speed: 6,
-            direction: -1
-          });
-          enemy.lastShot = now;
+        function announceEnemy(name, power) {
+            const announce = document.getElementById('enemyAnnounce');
+            announce.textContent = `${name} Appeared!\n${power}`;
+            announce.style.opacity = 1;
+            setTimeout(() => {
+                announce.style.opacity = 0;
+            }, 2000);
         }
 
-        if (rectCollision(player, enemy) && !player.invincible) {
-          player.health -= 20;
-          player.invincible = true;
-          player.invincibleTimer = 60;
-          if (player.health <= 0) gameOver = true;
-        }
-      }
-
-      for (let i = enemyBullets.length - 1; i >= 0; i--) {
-        const bullet = enemyBullets[i];
-        bullet.x += bullet.speed * bullet.direction;
-
-        if (bullet.x < -20 || bullet.x > CANVAS_WIDTH + 20) {
-          enemyBullets.splice(i, 1);
-          continue;
+        function resetPlayer() {
+            player.x = 50;
+            player.y = GROUND_Y - 48;
+            player.vx = 0;
+            player.vy = 0;
+            player.invincible = true;
+            player.invincibleTimer = 90;
         }
 
-        if (rectCollision(player, bullet) && !player.invincible) {
-          player.health -= 10;
-          player.invincible = true;
-          player.invincibleTimer = 60;
-          enemyBullets.splice(i, 1);
-          if (player.health <= 0) gameOver = true;
+        function startGame() {
+            gameState = 'playing';
+            score = 0;
+            lives = 3;
+            currentEnemy = 0;
+            enemies = [];
+            fireballs = [];
+            enemyProjectiles = [];
+            spawnCoins();
+            spawnEnemy(0);
+            resetPlayer();
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('victoryScreen').classList.add('hidden');
+            updateHUD();
         }
-      }
 
-      document.getElementById('score').textContent = score;
-      document.getElementById('health').textContent = Math.max(0, player.health);
-    }
-
-    function rectCollision(a, b) {
-      return a.x < b.x + b.width &&
-             a.x + a.width > b.x &&
-             a.y < b.y + b.height &&
-             a.y + a.height > b.y;
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-      for (const plat of platforms) {
-        ctx.fillStyle = plat.color;
-        ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-        ctx.strokeRect(plat.x, plat.y, plat.width, plat.height);
-      }
-
-      for (const enemy of enemies) {
-        const img = enemyImages[enemy.type];
-        if (img.complete) {
-          ctx.drawImage(img, enemy.x, enemy.y, enemy.width, enemy.height);
-        } else {
-          ctx.fillStyle = '#e74c3c';
-          ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+        function restartGame() {
+            startGame();
         }
-      }
 
-      for (const bullet of enemyBullets) {
-        ctx.fillStyle = '#f39c12';
-        ctx.beginPath();
-        ctx.arc(bullet.x + bullet.width/2, bullet.y + bullet.height/2, bullet.width/2, 0, Math.PI * 2);
-        ctx.fill();
-      }
+        function gameOver() {
+            gameState = 'gameover';
+            document.getElementById('finalScore').textContent = `Score: ${score}`;
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
 
-      if (player.image.complete && player.image.naturalWidth > 0) {
-        ctx.globalAlpha = player.invincible ? 0.5 + Math.sin(Date.now() * 0.02) * 0.3 : 1;
-        ctx.drawImage(player.image, player.x, player.y, player.width, player.height);
-        ctx.globalAlpha = 1;
-      } else {
-        ctx.fillStyle = '#3498db';
-        ctx.fillRect(player.x, player.y, player.width, player.height);
-      }
+        function victory() {
+            gameState = 'victory';
+            document.getElementById('victoryScore').textContent = `Final Score: ${score}`;
+            document.getElementById('victoryScreen').classList.remove('hidden');
+        }
 
-      if (gameOver) {
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        ctx.fillStyle = '#e74c3c';
-        ctx.font = 'bold 48px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('GAME OVER', CANVAS_WIDTH/2, CANVAS_HEIGHT/2 - 30);
-        ctx.fillStyle = '#fff';
-        ctx.font = '24px Arial';
-        ctx.fillText('Score: ' + score, CANVAS_WIDTH/2, CANVAS_HEIGHT/2 + 20);
-        ctx.fillText('Refresh to play again', CANVAS_WIDTH/2, CANVAS_HEIGHT/2 + 60);
-      }
-    }
+        function updateHUD() {
+            document.getElementById('scoreDisplay').textContent = `Score: ${score}`;
+            document.getElementById('livesDisplay').textContent = '❤️'.repeat(lives);
+            document.getElementById('levelDisplay').textContent = `Enemy ${currentEnemy + 1}/3`;
+        }
 
-    function gameLoop() {
-      update();
-      draw();
-      requestAnimationFrame(gameLoop);
-    }
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
 
-    gameLoop();
-  </script>
+        function shootFireball() {
+            if (player.canShoot && fireballs.length < 3) {
+                fireballs.push({
+                    x: player.x + (player.direction === 1 ? player.width : -10),
+                    y: player.y + player.height / 2 - 8,
+                    width: 16,
+                    height: 16,
+                    vx: player.direction * 10
+                });
+                player.canShoot = false;
+                setTimeout(() => player.canShoot = true, 300);
+            }
+        }
+
+        function enemyShoot(enemy) {
+            if (enemy.shootInterval) {
+                enemy.shootTimer--;
+                if (enemy.shootTimer <= 0) {
+                    enemy.shootTimer = enemy.shootInterval;
+                    const dir = player.x > enemy.x ? 1 : -1;
+                    enemyProjectiles.push({
+                        x: enemy.x + enemy.width / 2,
+                        y: enemy.y + enemy.height / 2,
+                        width: 12,
+                        height: 12,
+                        vx: dir * 4
+                    });
+                }
+            }
+        }
+
+        function update() {
+            if (gameState !== 'playing') return;
+
+            frameCount++;
+            animationFrame = Math.floor(frameCount / 10) % 4;
+
+            if (player.invincible) {
+                player.invincibleTimer--;
+                if (player.invincibleTimer <= 0) {
+                    player.invincible = false;
+                }
+            }
+
+            if (keys.left) {
+                player.vx = -player.speed;
+                player.direction = -1;
+            } else if (keys.right) {
+                player.vx = player.speed;
+                player.direction = 1;
+            } else {
+                player.vx *= FRICTION;
+            }
+
+            if (keys.jump && player.onGround) {
+                player.vy = player.jumpPower;
+                player.onGround = false;
+            }
+
+            if (keys.fire) {
+                shootFireball();
+                keys.fire = false;
+            }
+
+            player.vy += GRAVITY;
+            player.x += player.vx;
+            player.y += player.vy;
+
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > CANVAS_WIDTH) player.x = CANVAS_WIDTH - player.width;
+
+            player.onGround = false;
+            
+            if (player.y + player.height > GROUND_Y) {
+                player.y = GROUND_Y - player.height;
+                player.vy = 0;
+                player.onGround = true;
+            }
+
+            platforms.forEach(plat => {
+                if (player.vy > 0 &&
+                    player.x + player.width > plat.x &&
+                    player.x < plat.x + plat.width &&
+                    player.y + player.height > plat.y &&
+                    player.y + player.height < plat.y + plat.height + player.vy) {
+                    player.y = plat.y - player.height;
+                    player.vy = 0;
+                    player.onGround = true;
+                }
+            });
+
+            fireballs.forEach((fb, i) => {
+                fb.x += fb.vx;
+                if (fb.x < 0 || fb.x > CANVAS_WIDTH) {
+                    fireballs.splice(i, 1);
+                }
+            });
+
+            enemyProjectiles.forEach((ep, i) => {
+                ep.x += ep.vx;
+                if (ep.x < 0 || ep.x > CANVAS_WIDTH) {
+                    enemyProjectiles.splice(i, 1);
+                }
+            });
+
+            if (enemies.length > 0) {
+                const enemy = enemies[0];
+                if (enemy.active) {
+                    enemy.x += enemy.speed * enemy.direction;
+                    
+                    if (enemy.platform) {
+                        if (enemy.x < enemy.platform.x || 
+                            enemy.x + enemy.width > enemy.platform.x + enemy.platform.width) {
+                            enemy.direction *= -1;
+                        }
+                    } else {
+                        if (enemy.x < 0 || enemy.x + enemy.width > CANVAS_WIDTH) {
+                            enemy.direction *= -1;
+                        }
+                    }
+
+                    if (enemy.platform) {
+                        enemy.y = enemy.platform.y - enemy.height;
+                    }
+
+                    enemyShoot(enemy);
+
+                    if (enemy.flashTimer > 0) enemy.flashTimer--;
+
+                    fireballs.forEach((fb, fi) => {
+                        if (checkCollision(fb, enemy)) {
+                            fireballs.splice(fi, 1);
+                            enemy.hp--;
+                            
+                            if (enemy.hasShield && enemy.hp === 2) {
+                                enemy.hasShield = false;
+                                enemy.flashTimer = 30;
+                            } else if (enemy.hp <= 0) {
+                                enemy.active = false;
+                                score += enemy.points;
+                                enemies = [];
+                                currentEnemy++;
+                                
+                                if (currentEnemy < 3) {
+                                    setTimeout(() => spawnEnemy(currentEnemy), 1500);
+                                } else {
+                                    setTimeout(() => victory(), 1000);
+                                }
+                            }
+                            updateHUD();
+                        }
+                    });
+
+                    if (!player.invincible && checkCollision(player, enemy)) {
+                        lives--;
+                        updateHUD();
+                        if (lives <= 0) {
+                            gameOver();
+                        } else {
+                            resetPlayer();
+                        }
+                    }
+                }
+            }
+
+            enemyProjectiles.forEach((ep, i) => {
+                if (!player.invincible && checkCollision(player, {x: ep.x, y: ep.y, width: ep.width, height: ep.height})) {
+                    enemyProjectiles.splice(i, 1);
+                    lives--;
+                    updateHUD();
+                    if (lives <= 0) {
+                        gameOver();
+                    } else {
+                        resetPlayer();
+                    }
+                }
+            });
+
+            coins.forEach(coin => {
+                if (!coin.collected) {
+                    coin.frame += 0.1;
+                    if (checkCollision(player, {x: coin.x, y: coin.y, width: coin.size, height: coin.size})) {
+                        coin.collected = true;
+                        score += 100;
+                        updateHUD();
+                    }
+                }
+            });
+        }
+
+        function draw() {
+            ctx.fillStyle = '#5c94fc';
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, CANVAS_HEIGHT - GROUND_Y);
+
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, 8);
+
+            platforms.forEach(plat => {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(plat.x, plat.y + plat.height - 4, plat.width, 4);
+            });
+
+            coins.forEach(coin => {
+                if (!coin.collected) {
+                    drawCoinFrame(coin.x, coin.y, coin.size, coin.frame);
+                }
+            });
+
+            if (sprites.mario.complete && sprites.mario.naturalWidth > 0) {
+                ctx.save();
+                if (player.invincible && Math.floor(frameCount / 5) % 2 === 0) {
+                    ctx.globalAlpha = 0.5;
+                }
+                ctx.translate(player.x + player.width, player.y);
+                ctx.scale(-player.direction, 1);
+                ctx.drawImage(sprites.mario, 0, 0, player.width, player.height);
+                ctx.restore();
+            } else {
+                ctx.fillStyle = player.invincible && Math.floor(frameCount / 5) % 2 === 0 ? '#ff6b6b' : '#ff0000';
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+                ctx.fillStyle = '#ffcc99';
+                ctx.fillRect(player.x + 10, player.y + 8, 28, 16);
+            }
+
+            enemies.forEach(enemy => {
+                if (enemy.active) {
+                    const sprite = sprites[enemy.sprite];
+                    if (sprite.complete && sprite.naturalWidth > 0) {
+                        ctx.save();
+                        if (enemy.flashTimer > 0 && Math.floor(enemy.flashTimer / 3) % 2 === 0) {
+                            ctx.globalAlpha = 0.5;
+                        }
+                        ctx.drawImage(sprite, enemy.x, enemy.y, enemy.width, enemy.height);
+                        
+                        if (enemy.hasShield) {
+                            ctx.strokeStyle = '#00ffff';
+                            ctx.lineWidth = 3;
+                            ctx.beginPath();
+                            ctx.arc(enemy.x + enemy.width/2, enemy.y + enemy.height/2, enemy.width/2 + 5, 0, Math.PI * 2);
+                            ctx.stroke();
+                        }
+                        ctx.restore();
+                    } else {
+                        ctx.fillStyle = enemy.flashTimer > 0 && Math.floor(enemy.flashTimer / 3) % 2 === 0 ? '#fff' : '#8B008B';
+                        ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                        
+                        if (enemy.hasShield) {
+                            ctx.strokeStyle = '#00ffff';
+                            ctx.lineWidth = 3;
+                            ctx.beginPath();
+                            ctx.arc(enemy.x + enemy.width/2, enemy.y + enemy.height/2, enemy.width/2 + 5, 0, Math.PI * 2);
+                            ctx.stroke();
+                        }
+                    }
+
+                    if (enemy.hp) {
+                        ctx.fillStyle = 'white';
+                        ctx.font = 'bold 12px Arial';
+                        ctx.fillText(`HP: ${enemy.hp}`, enemy.x, enemy.y - 5);
+                    }
+                }
+            });
+
+            fireballs.forEach(fb => {
+                drawFireballFrame(fb.x, fb.y, fb.width);
+            });
+
+            enemyProjectiles.forEach(ep => {
+                ctx.fillStyle = '#ff4444';
+                ctx.beginPath();
+                ctx.arc(ep.x + ep.width/2, ep.y + ep.height/2, ep.width/2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffff00';
+                ctx.beginPath();
+                ctx.arc(ep.x + ep.width/2, ep.y + ep.height/2, ep.width/4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            if (currentEnemy < 3 && enemyConfigs[currentEnemy]) {
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(10, CANVAS_HEIGHT - 40, 200, 30);
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText(`Next: ${enemyConfigs[currentEnemy].name}`, 20, CANVAS_HEIGHT - 20);
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+            if (e.key === ' ' || e.key === 'w' || e.key === 'W') {
+                keys.jump = true;
+                e.preventDefault();
+            }
+            if (e.key === 'x' || e.key === 'X' || e.key === 'f' || e.key === 'F') {
+                keys.fire = true;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+            if (e.key === ' ' || e.key === 'w' || e.key === 'W') keys.jump = false;
+        });
+
+        function setupTouchButton(id, keyName, continuous = false) {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+
+            const start = (e) => {
+                e.preventDefault();
+                keys[keyName] = true;
+            };
+            const end = (e) => {
+                e.preventDefault();
+                if (!continuous) keys[keyName] = false;
+            };
+
+            btn.addEventListener('touchstart', start);
+            btn.addEventListener('touchend', end);
+            btn.addEventListener('touchcancel', end);
+            btn.addEventListener('mousedown', start);
+            btn.addEventListener('mouseup', end);
+            btn.addEventListener('mouseleave', end);
+        }
+
+        setupTouchButton('btnLeft', 'left');
+        setupTouchButton('btnRight', 'right');
+        setupTouchButton('btnJump', 'jump');
+        setupTouchButton('btnFire', 'fire');
+
+        gameLoop();
+    </script>
 </body>
 </html>
